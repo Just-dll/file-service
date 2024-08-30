@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option csharp_namespace = "FileService.BLL.Grpc";
+
+package IdentityApi;
+
+service Identity {
+	rpc IsUserExists(UserRequest) returns (IsUserExistsResponse) {}
+	rpc GetUser(UserRequest) returns (UserInstanceResponse) {}
+	rpc GetUserByEmail(UserEmailRequest) returns (UserInstanceResponse) {}
+}
+
+message UserRequest {
+	string user_id = 1;
+}
+
+message UserEmailRequest {
+	string email = 1;
+}
+
+message IsUserExistsResponse {
+	bool exists = 1;
+}
+
+message UserInstanceResponse {
+	string guid = 1;
+	string user_name = 2;
+	string email = 3;
+}

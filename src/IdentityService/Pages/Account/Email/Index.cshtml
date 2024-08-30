@@ -1,0 +1,20 @@
+﻿@page
+@model MesaProject.IdentityService.Pages.Account.Email.IndexModel
+@{
+    ViewData["Title"] = "Manage Email";
+}
+
+<h2>Manage Email</h2>
+
+<div>
+    <p>Email: @Model.Email</p>
+    <p>Confirmed: @(Model.IsEmailConfirmed ? "Yes" : "No")</p>
+
+    @if (!Model.IsEmailConfirmed)
+    {
+        <form method="post">
+            <button type="submit" name="action" value="confirm" class="btn btn-primary">Confirm Email</button>
+            <button type="submit" name="action" value="resend" class="btn btn-secondary">Resend Confirmation Code</button>
+        </form>
+    }
+</div>
