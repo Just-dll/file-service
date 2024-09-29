@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AccessModel, FileShortModel, FolderModel, FolderShortModel } from './models.folder';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { ShareFolderDialogComponent } from './dialogs/share-folder-dialog/share-folder-dialog.component';
@@ -26,7 +26,8 @@ export class FolderPageComponent implements OnInit {
   constructor(
     protected http: HttpClient,
     protected route: ActivatedRoute,  // Inject FormBuilder service
-    private dialog: MatDialog 
+    private dialog: MatDialog,
+    private router: Router,
   ) {
   }
 
@@ -74,24 +75,6 @@ export class FolderPageComponent implements OnInit {
     this.previewFileType = null;
     this.previewFileName = '';
     this.isPreviewOpen = false;
-  }
-  
-  handleFolderAction(event: { action: string, folderId: number }) {
-    const { action, folderId } = event;
-  
-    switch (action) {
-      case 'share':
-        this.onShareFolderClick(folderId);
-        break;
-      case 'delete':
-        this.onDeleteClick(folderId);
-        break;
-      case 'download':
-        this.onDownloadClick();
-        break;
-      default:
-        console.error(`Unknown action: ${action}`);
-    }
   }
 
   getFolderContent(): void {
@@ -157,19 +140,75 @@ export class FolderPageComponent implements OnInit {
     // Add your download logic here
   }
 
-  onDeleteClick(folderId: number): void {
-    // Send the DELETE request to the API
+  handleFolderAction(event: { action: string, folderId: number, source: string }) {
+    const { action, folderId, source } = event;
+
+    switch (action) {
+      case 'share':
+        this.onShareFolderClick(folderId);
+        break;
+      case 'delete':
+        this.onDeleteClick(folderId, source);
+        break;
+      case 'download':
+        this.onDownloadClick();
+        break;
+      default:
+        console.error(`Unknown action: ${action}`);
+    }
+  }
+
+  onDeleteClick(folderId: number, source: string): void {
     const apiUrl = `api/Folder/${folderId}`;
     this.http.delete(apiUrl).subscribe(
       () => {
         console.log(`Folder with ID ${folderId} deleted successfully.`);
-        // Remove the folder from the frontend
-        this.folderContent.innerFolders = this.folderContent.innerFolders.filter(folder => folder.id !== folderId);
+        
+        if (source === 'breadcrumb') {
+          this.redirectToParentFolder(folderId);
+        } else {
+          this.folderContent.innerFolders = this.folderContent.innerFolders.filter(folder => folder.id !== folderId);
+        }
+
+        //this.snackBar.open('Folder deleted successfully.', 'Close', {
+        //  duration: 3000,
+        //});
       },
       (error) => {
         console.error('Error deleting folder:', error);
+        //this.snackBar.open('Failed to delete folder.', 'Close', {
+        //  duration: 3000,
+        //});
       }
     );
+  }
+
+  private redirectToParentFolder(deletedFolderId: number): void {
+    const deletedIndex = this.folderBreadcrumbs.findIndex(folder => folder.id === deletedFolderId);
+
+    if (deletedIndex > 0) {
+      const parentFolder = this.folderBreadcrumbs[deletedIndex - 1];
+      console.log(`Redirecting to parent folder: ${parentFolder.name}`);
+
+      this.router.navigate(['/drive/folder', parentFolder.id])/*.then(success => {
+        if (success) {
+          //this.snackBar.open(`Folder deleted. Redirected to ${parentFolder.name}.`, 'Close', {
+          //  duration: 3000,
+          //});
+        } else {
+          //this.snackBar.open('Navigation failed after deletion.', 'Close', {
+          //  duration: 3000,
+          //});
+        }
+      });*/
+    } else {
+      console.warn('No parent folder to redirect to.');
+      //this.snackBar.open('Folder deleted. No parent folder to redirect to.', 'Close', {
+      //  duration: 3000,
+      //});
+      // Optionally, navigate to a default route
+      // this.router.navigate(['/drive']).then();
+    }
   }
 
   onUploadClick() {

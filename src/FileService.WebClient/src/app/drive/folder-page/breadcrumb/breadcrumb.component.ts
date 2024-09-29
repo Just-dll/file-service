@@ -9,7 +9,7 @@ import { FolderShortModel } from '../models.folder';
 export class BreadcrumbComponent {
   @Input() breadcrumbs!: FolderShortModel[];
   
-  @Output() folderAction = new EventEmitter<{ action: string, folderId: number }>();
+  @Output() folderAction = new EventEmitter<{ action: string, folderId: number, source: string }>();
 
   isMenuOpen = false;
 
@@ -18,17 +18,17 @@ export class BreadcrumbComponent {
   }
 
   onShareClick(folderId: number) {
-    this.folderAction.emit({ action: 'share', folderId });
+    this.folderAction.emit({ action: 'share', folderId, source: 'breadcrumb' });
     this.isMenuOpen = false;
   }
 
   onDeleteClick(folderId: number) {
-    this.folderAction.emit({ action: 'delete', folderId });
+    this.folderAction.emit({ action: 'delete', folderId, source: 'breadcrumb' });
     this.isMenuOpen = false;
   }
 
   onDownloadClick(folderId: number) {
-    this.folderAction.emit({ action: 'download', folderId });
+    this.folderAction.emit({ action: 'download', folderId, source: 'breadcrumb' });
     this.isMenuOpen = false;
   }
 }

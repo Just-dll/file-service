@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FileShortModel, FolderModel } from '../folder-page/models.folder';
 import { FolderPageComponent } from '../folder-page/folder-page.component';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 
@@ -14,8 +14,8 @@ import { MatDialog } from '@angular/material/dialog';
 export class MyDriveComponent extends FolderPageComponent implements OnInit {
   
   constructor(http: HttpClient, route: ActivatedRoute, fb: FormBuilder, 
-    dialog: MatDialog ) {
-    super(http, route, dialog);
+    dialog: MatDialog, router: Router ) {
+    super(http, route, dialog, router);
   }
   
   override ngOnInit(): void {

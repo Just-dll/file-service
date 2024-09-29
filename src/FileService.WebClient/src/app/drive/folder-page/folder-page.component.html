@@ -29,10 +29,10 @@
                         <h3>Inner Folders</h3>
                         <ul>
                         @for (folder of folderContent.innerFolders; track $index) {
+                            <!-- onDeleteClick needs fix. There's bug -->
                             <div class="iteration-item">
-                                <app-folder [folder]="folder" (deleteClicked)="onDeleteClick($event)" (shareFolderClicked)="onShareFolderClick($event)"></app-folder>
+                                <app-folder [folder]="folder" (deleteClicked)="onDeleteClick($event, 'folder')" (shareFolderClicked)="onShareFolderClick($event)"></app-folder>
                             </div>
-                            
                         }
                         </ul>
                     </div>
