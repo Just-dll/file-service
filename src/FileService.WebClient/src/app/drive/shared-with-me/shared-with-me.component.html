@@ -1,0 +1,12 @@
+<div class="inner-folders">
+    <h3>Inner Folders</h3>
+    <ul>
+    @for (folder of sharedFolders; track $index) {
+        <li class="folder-item">
+            <a [routerLink]="['/drive/folder', folder.id]">
+                <i class="fa fa-folder"></i> {{ folder.name }}
+            </a>
+        </li>
+    }
+    </ul>
+</div>

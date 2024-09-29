@@ -19,7 +19,8 @@ namespace IdentityService
                 new ApiScope("scope1"),
                 new ApiScope("scope2"),
                 new ApiScope(IdentityServerConstants.LocalApi.ScopeName),
-                new ApiScope("department", ["department.id"])
+                new ApiScope("department", ["department.id"]),
+                new ApiScope("api")
             };
 
         public static IEnumerable<Client> GetClients(IConfiguration config) =>
@@ -68,9 +69,13 @@ namespace IdentityService
 
                     AllowedGrantTypes = GrantTypes.Code,
 
-                    RedirectUris = { $"{config["FileService:Url"]}/signin-oidc" },
+                    RedirectUris = { $"{config["FileService:Url"]}/signin-oidc", $"{config["Bff:Url"]}/signin-oidc", $"{config["WebClient:Url"]}/signin-oidc" },
+                    FrontChannelLogoutUri = $"{config["WebClient:Url"]}/signout-oidc",
+                    PostLogoutRedirectUris = { $"{config["WebClient:Url"]}/signout-callback-oidc" },
 
-                    AllowedScopes = { "openid", "profile", "email" }
+                    AllowOfflineAccess = true,
+
+                    AllowedScopes = { "openid", "profile", "email", "api", "offline_access" }
                 }
             };
     }

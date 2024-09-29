@@ -1,0 +1,8 @@
+<li class="folder-item folderitem folder" [routerLink]="['/drive/folder', folder.id]">
+  <i class="fa fa-folder"></i> {{ folder.name }}
+  <div class="folder-options">
+    <i class="fa-solid fa-share" (click)="onShareClick($event)"></i>
+    <i class="fa-solid fa-download" (click)="onDownloadClick($event)"></i>
+    <i class="fa-solid fa-trash" (click)="onDeleteClick($event)"></i>
+  </div>
+</li>

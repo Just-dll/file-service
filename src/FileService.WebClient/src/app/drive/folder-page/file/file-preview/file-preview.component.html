@@ -1,0 +1,30 @@
+<div class="file-preview-modal" *ngIf="fileUrl">
+  <div class="preview-header">
+    <button class="close-btn" (click)="closePreview()">×</button>
+    <h2>{{ fileName }}</h2>
+    <div class="header-buttons">
+      <button (click)="downloadFile()">Download</button>
+      <!-- Only show the print button if there is a preview -->
+      <button *ngIf="isPreviewAvailable()" (click)="printFile()">Print</button>
+    </div>
+  </div>
+
+  <div class="preview-content">
+    <!-- Render preview based on file type -->
+    <ng-container *ngIf="fileType?.startsWith('image')">
+      <img [src]="fileUrl" alt="{{ fileName }}" [class.zoomed-out]="!isZoomed" (click)="toggleZoom()">
+    </ng-container>
+
+    <ng-container *ngIf="fileType === 'text/plain'">
+      <pre>{{ fileContent }}</pre>
+    </ng-container>
+
+    <!-- Card for unsupported file types with download option -->
+    <ng-container *ngIf="!fileType || (!fileType.startsWith('image') && fileType !== 'text/plain')">
+      <div class="no-preview-card">
+        <p>Preview not available for this file type.</p>
+        <button (click)="downloadFile()">Download File</button>
+      </div>
+    </ng-container>
+  </div>
+</div>

@@ -18,10 +18,26 @@ var identityEndpoint = identityService.GetEndpoint("https") ?? throw new Argumen
 
 var fileService = builder.AddProject<Projects.FileService_WebApi>("mesaproject-fileservice")
     .WithEnvironment("IdentityService__Url", identityEndpoint)
+    .WithReference(cache)
     .WithReference(filedb);
 
+var fileEndpoint = fileService.GetEndpoint("https");
+
+var clientSecret = builder.AddParameter("mesaProjectBff-secret", true);
+
+var bff = builder.AddProject<Projects.FileService_BFF>("mesaproject-bff")
+    .WithEnvironment("BFF:ClientSecret", clientSecret);
+
+var webclient = builder.AddNpmApp("WebApp", "../FileService.WebClient")
+    .WithEnvironment("BFF__Url", bff.GetEndpoint("https"))
+    .WithEnvironment("Identity__Url", identityEndpoint)
+    .WithEnvironment("FileService__Url", fileEndpoint)
+    .WithHttpsEndpoint(port: 5031, targetPort: 5031, env: "PORT", isProxied: false);
+
 identityService
-    .WithEnvironment("FileService__Url", fileService.GetEndpoint("https"));
+    .WithEnvironment("Bff__Url", bff.GetEndpoint("https"))
+    .WithEnvironment("FileService__Url", fileEndpoint)
+    .WithEnvironment("WebClient__Url", webclient.GetEndpoint("https"));
 
 
 builder.Build().Run();

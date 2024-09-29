@@ -44,6 +44,7 @@ Generated\ Files/
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
+tests/[Ct]overage[Rr]eport/
 
 # NUnit
 *.VisualState.xml
@@ -361,3 +362,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+FileServiceStorage/
+/tests/CoverageReport

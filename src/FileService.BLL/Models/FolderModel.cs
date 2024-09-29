@@ -16,7 +16,6 @@ namespace FileService.BLL.Models
 
         public bool IsValid()
         {
-            // Check if the folder name contains any invalid characters.
             return !Path.GetInvalidPathChars().Any(c => this.Name.Contains(c));
         }
     }

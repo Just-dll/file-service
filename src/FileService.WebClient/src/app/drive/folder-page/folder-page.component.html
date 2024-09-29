@@ -1,0 +1,91 @@
+@if(isLoading) {
+    <div class="loading-spinner">
+        <i class="fa fa-spinner fa-spin"></i> Loading...
+    </div>
+}
+@else {
+    
+    @if(folderContent != null) {
+        @if(folderBreadcrumbs != null) {
+            <app-breadcrumb [breadcrumbs]="folderBreadcrumbs" (folderAction)="handleFolderAction($event)"></app-breadcrumb>
+        }
+        <div class="breadcrumbs">
+            <div class="dropdown">
+                <button type="button" class="upload-btn">
+                    <i class="fa-solid fa-plus"></i> Upload
+                </button>
+                <div class="dropdown-menu">
+                    <button type="button" class="dropdown-item" (click)="fileInput.click()">Upload File</button>
+                    <button type="button" class="dropdown-item" (click)="onAddFolderClick(folderId)">Add Folder</button>
+                    <!---<button type="button" class="dropdown-item" (click)="onUploadFolderClick()">Upload Folder</button>!-->
+                </div>
+            </div>
+            <input type="file" class="file-input" (change)="onFileSelected($event)" multiple #fileInput style="display: none;">
+        </div>
+        <div class="main-container">
+            <div class="folder-container">
+                @if(folderContent.innerFolders.length > 0) {
+                    <div class="inner-folders">
+                        <h3>Inner Folders</h3>
+                        <ul>
+                        @for (folder of folderContent.innerFolders; track $index) {
+                            <div class="iteration-item">
+                                <app-folder [folder]="folder" (deleteClicked)="onDeleteClick($event)" (shareFolderClicked)="onShareFolderClick($event)"></app-folder>
+                            </div>
+                            
+                        }
+                        </ul>
+                    </div>
+                }
+            
+                @if(folderContent.files.length > 0) {
+                    <div class="files">
+                        <h3>Files</h3>
+                        <ul>
+                            @for (file of folderContent.files; track $index) {
+                                <div class="iteration-item">
+                                    <app-file [file]="file" [parentFolderId]="folderContent.id" (deleteClicked)="onDeleteFileClick($event)" (previewClicked)="onFilePreview($event)">
+                                    </app-file>
+                                </div>
+                                
+                            }
+                        </ul>
+                    </div>
+                }
+                
+                @if(isPreviewOpen) {
+                    <app-file-preview 
+                        *ngIf="previewFileUrl" 
+                        [fileUrl]="previewFileUrl" 
+                        [fileType]="previewFileType" 
+                        [fileName]="previewFileName" 
+                        (closePreview)="closePreview()">
+                    </app-file-preview>
+                }
+                
+                <div *ngIf="folderContent.innerFolders.length === 0 && folderContent.files.length === 0" class="no-folder-elements">
+                    <p>This folder is empty.</p>
+                </div>
+            </div>
+
+            @if(accessors != undefined) {
+                @if(accessors.length > 1) {
+                    <div class="accessors-container">
+                        <h3>Accessors</h3>
+                        <ul>
+                            @for (accessor of accessors; track $index) {
+                                <li>
+                                    <strong>User:</strong> {{ accessor.user.userName }} <br />
+                                    <strong>Email:</strong> {{ accessor.user.email }} <br />
+                                    <strong>Permissions:</strong> {{ accessor.permissions }} <br />
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+                
+            }
+        </div>
+        
+    }
+}

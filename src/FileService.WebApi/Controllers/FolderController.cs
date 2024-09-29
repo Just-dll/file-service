@@ -1,10 +1,13 @@
 using FileService.BLL.Interfaces;
 using FileService.BLL.Models;
+using FileService.BLL.Models.Short;
 using FileService.DAL.Entities;
 using FileService.WebApi.Extensions;
 using FileService.WebApi.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Net;
 
 namespace FileService.WebApi.Controllers;
@@ -16,15 +19,18 @@ namespace FileService.WebApi.Controllers;
 public class FolderController : ControllerBase
 {
     private readonly IFolderService _folderService;
-    public FolderController(IFolderService folderService)
+    //private readonly IDistributedCache cache;
+    public FolderController(IFolderService folderService/*, IDistributedCache cache*/)
     {
         _folderService = folderService;
+        //this.cache = cache;
     }
 
     [HttpGet]
     public async Task<ActionResult<FolderModel>> GetMyFolder()
     {
         var folderId = HttpContext.GetUserFolderId();
+
         var result = await _folderService.GetFolderAsync(folderId);
 
         return Ok(result);
@@ -42,6 +48,21 @@ public class FolderController : ControllerBase
 
         return Ok(folder);
     }
+
+    [HttpGet("{folderId}/download")]
+    public async Task<IActionResult> DownloadFolderArchive(uint folderId)
+    {
+        var archiveResult = await _folderService.GetFolderArchiveAsync(folderId);
+
+        if (archiveResult == null)
+        {
+            return NotFound($"Folder with ID {folderId} not found or cannot be archived.");
+        }
+
+        // Return the file as a downloadable zip
+        return File(archiveResult.ArchiveData, "application/zip", $"{archiveResult.FolderName}.zip");
+    }
+
 
     [HttpPost]
     public async Task<IActionResult> PostFolder(uint? folderId, FolderModel model)

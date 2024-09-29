@@ -22,18 +22,19 @@ namespace FileService.WebApi.Filters
                 return;
             }
 
-            var requiredPermission = context.HttpContext.Request.Method.ToUpper() switch
-            {
-                "POST" => AccessPermission.Create,
-                "PUT" => AccessPermission.Update,
-                "DELETE" => AccessPermission.Delete,
-                _ => AccessPermission.Read,
-            };
-
+            
             // Check if the action method has a 'folderId' parameter
             if (context.ActionArguments.TryGetValue("folderId", out var folderIdObj) && folderIdObj != null)
             {
                 var folderId = Convert.ToUInt32(folderIdObj);
+
+                var requiredPermission = context.HttpContext.Request.Method.ToUpper() switch
+                {
+                    "POST" => AccessPermission.Create,
+                    "PUT" => AccessPermission.Update,
+                    "DELETE" => AccessPermission.Delete,
+                    _ => AccessPermission.Read,
+                };
 
                 // Check access to the folder
                 if (!await _accessService.GetAccessVerification(userId.Value, folderId, requiredPermission))

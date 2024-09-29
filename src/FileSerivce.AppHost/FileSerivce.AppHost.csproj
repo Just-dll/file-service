@@ -10,12 +10,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="8.1.0" />
-    <PackageReference Include="Aspire.Hosting.Redis" Version="8.1.0" />
-    <PackageReference Include="Aspire.Hosting.SqlServer" Version="8.2.0" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="8.2.1" />
+    <PackageReference Include="Aspire.Hosting.NodeJs" Version="8.2.1" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="8.2.1" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" Version="8.2.1" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FileService.BFF\FileService.BFF.csproj" />
     <ProjectReference Include="..\FileService.WebApi\FileService.WebApi.csproj" />
     <ProjectReference Include="..\IdentityService\IdentityService.csproj" />
   </ItemGroup>

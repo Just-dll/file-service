@@ -112,7 +112,7 @@ public static class Extensions
 
     public static Guid? GetPrincipalIdentifier(this ClaimsPrincipal claimsPrincipal)
     {
-        var princ = claimsPrincipal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        var princ = claimsPrincipal.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == ClaimTypes.NameIdentifier)?.Value;
         if (Guid.TryParse(princ, out var principalIdentifier))
         {
             return principalIdentifier;

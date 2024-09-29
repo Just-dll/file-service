@@ -1,0 +1,7 @@
+<li class="file-item folderitem file" (click)="onPreviewClick()">
+  <i class="fa fa-file"></i> {{ file.name }} - {{ file.size }} - Created on: {{ file.creationDate }}
+  <div class="folder-options">
+    <i class="fa-solid fa-download" (click)="onDownloadClick(); $event.stopPropagation()"></i>
+    <i class="fa-solid fa-trash" (click)="onDeleteClick(); $event.stopPropagation()"></i>
+  </div>
+</li>

@@ -1,11 +1,12 @@
 ﻿using AutoMapper;
-using Azure.Core;
 using FileService.BLL.Interfaces;
 using FileService.BLL.Models;
+using FileService.BLL.Models.Short;
 using FileService.DAL.Data;
 using FileService.DAL.Entities;
 using FileService.DAL.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.IO.Compression;
 using System.Threading;
 
 namespace FileService.BLL.Services
@@ -50,14 +51,7 @@ namespace FileService.BLL.Services
             var folder = await _context.Folders.FindAsync(folderId);
             if (folder != null)
             {
-                var folderPath = await _context.Folders
-                   .FromSqlRaw("EXEC LoadAllOuterFolders @FolderId = {0}", folderId)
-                   .ToListAsync();
-
-                if (folderPath == null || folderPath.Count < 1)
-                {
-                    throw new InvalidOperationException();
-                }
+                var folderPath = await GetFullFolderPathAsync(folderId);
 
                 var fullPath = string.Join('/', folderPath.Select(f => f.Name));
                 await _storageProvider.DeleteItemAsync(fullPath);
@@ -71,22 +65,11 @@ namespace FileService.BLL.Services
         {
             try
             {
+                var folderPath = (await GetFullFolderPathAsync(folderId)).Select(f => f.Name).ToList();
 
-                //_context.Database.BeginTransaction();
-                var folderPath = await _context.Folders
-               .FromSqlRaw("EXEC LoadAllOuterFolders @FolderId = {0}", folderId)
-               .ToListAsync();
-
-                if (folderPath == null || folderPath.Count < 1)
-                {
-                    throw new InvalidDataException();
-                }
-
-                var fullPath = string.Join('/', folderPath.Select(f => f.Name));
-
-                folderPath[^1].Name = folder.Name;
-
-                var dest = string.Join('/', folderPath.Select(f => f.Name));
+                var fullPath = string.Join('/', folderPath);
+                folderPath[^1] = folder.Name; 
+                var dest = string.Join('/', folderPath);
 
                 await _storageProvider.UpdateFolderAsync(fullPath, dest);
 
@@ -104,5 +87,71 @@ namespace FileService.BLL.Services
                 throw;
             }
         }
+
+        public async Task<FolderArchiveModel?> GetFolderArchiveAsync(uint folderId)
+        {
+            // Fetch the folder entity (root folder)
+            var folder = await _context.Folders
+                .Include(f => f.InnerFolders)
+                .Include(f => f.Files)
+                .FirstOrDefaultAsync(f => f.Id == folderId);
+
+            if (folder == null)
+            {
+                return null;
+            }
+
+            // Get full folder path from root downwards
+            var folderPath = await GetFullFolderPathAsync(folderId); // Use existing method to build folder path
+            var relativePath = string.Join('/', folderPath.Select(f => f.Name));
+
+            // Zip the folder using the new IStorageProvider.ReadFolderAsync
+            var archiveData = await _storageProvider.ReadFolderAsync(relativePath);
+
+            // Return the result as FolderArchiveModel
+            return new FolderArchiveModel
+            {
+                FolderName = folder.Name,
+                ArchiveData = archiveData
+            };
+        }
+
+        //private async Task AddFolderToArchive(Folder folder, string relativePath, ZipArchive zipArchive)
+        //{
+        //    // Add all files in this folder to the zip archive
+        //    foreach (var file in folder.Files)
+        //    {
+        //        var fileBytes = await _storageProvider.ReadFileAsync(relativePath, file.Name);
+        //        var entry = zipArchive.CreateEntry(Path.Combine(relativePath, file.Name));
+
+        //        using (var entryStream = entry.Open())
+        //        {
+        //            await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
+        //        }
+        //    }
+
+        //    // Recursively process all inner folders
+        //    foreach (var innerFolder in folder.InnerFolders)
+        //    {
+        //        var innerFolderPath = Path.Combine(relativePath, innerFolder.Name);
+        //        // Recursively add inner folder contents
+        //        await AddFolderToArchive(innerFolder, innerFolderPath, zipArchive);
+        //    }
+        //}
+
+        public async Task<IEnumerable<FolderShortModel>> GetFullFolderPathAsync(uint folderId)
+        {
+            var folderPath = await _context.Folders
+                   .FromSqlRaw("EXEC LoadAllOuterFolders @FolderId = {0}", folderId)
+                   .ToListAsync();
+
+            if (folderPath.Count < 1)
+            {
+                throw new DirectoryNotFoundException();
+            }
+
+            return folderPath.Select(f => _mapper.Map<FolderShortModel>(f));
+        }
+
     }
 }

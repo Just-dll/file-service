@@ -1,0 +1,334 @@
+.folder-container {
+  flex: 2;
+  max-width: 800px;
+  //margin: 20px auto;
+  padding: 20px;
+  padding-top: 5px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+  h2.folder-title {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  h3 {
+    font-size: 20px;
+    color: #555;
+    margin-bottom: 10px;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+
+    .iteration-item {
+      border-bottom: 1px solid #ddd;
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    .folder-item,
+    .file-item {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      color: #555;
+      position: relative;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      i {
+        margin-right: 10px;
+        color: #007bff;
+      }
+
+      a {
+        text-decoration: none;
+        color: black;
+        flex-grow: 1;
+      }
+
+    }
+
+    .folder-item i {
+      color: #ffc107; // Folder icon color
+
+      a {
+        color: white;
+      }
+
+
+    }
+
+    .file-item i {
+      color: #28a745; // File icon color
+    }
+
+    .folder-options {
+      display: none; // Initially hidden
+      position: absolute;
+      top: 50%;
+      right: 10px; // Positioning to the right
+      transform: translateY(-50%);
+      //background-color: #f8f9fa;
+      //border: 1px solid #ddd;
+      padding: 5px;
+      border-radius: 4px;
+      //box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      white-space: nowrap; // Prevent options from wrapping
+
+      i {
+        color: black;
+      }
+    }
+
+    .option-btn {
+      //background-color: #007bff;
+
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      margin-right: 5px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px; // Slightly smaller text
+    }
+
+    .option-btn:hover {
+      background-color: #0056b3;
+    }
+
+    .option-btn:last-child {
+      margin-right: 0; // Remove margin from last button
+    }
+  }
+
+  p {
+    text-align: center;
+    font-size: 18px;
+    color: #777;
+  }
+}
+
+.breadcrumbs {
+  display: flex;
+  justify-content: space-between; /* Aligns h2 and button on the same line with space in between */
+  align-items: center; /* Vertically centers the items */
+  margin-bottom: 20px;
+}
+
+.breadcrumbs h2.folder-title {
+  font-size: 24px;
+  color: #333;
+}
+
+.breadcrumbs .upload-btn {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumbs .upload-btn i {
+  margin-right: 5px; /* Space between icon and text */
+}
+
+.breadcrumbs .upload-btn:hover {
+  background-color: #0056b3;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown:active .dropdown-menu, /* Show dropdown on hover */
+.dropdown:focus-within .dropdown-menu { /* Show dropdown when focused (e.g., via keyboard) */
+  display: block;
+}
+
+.dropdown-menu {
+  display: none; /* Initially hidden */
+  position: absolute;
+  background-color: #f9f9f9;
+  //min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  border-radius: 4px;
+  right: 0;
+}
+
+.dropdown-item {
+  background-color: #007bff;
+  color: #fff; 
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+  border: none;
+  text-align: left; 
+  width: 100%; 
+  border-bottom: 1px solid #0056b3; 
+  font-size: 14px; 
+  font-family: 'YourProjectFont', sans-serif;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none; /* Remove border from the last item */
+}
+
+.dropdown-item:hover {
+  background-color: #0056b3; /* Darker background on hover */
+  //transform: translateX(5px); /* Slightly move right on hover */
+}
+
+.dropdown-item:active {
+  background-color: #004080; /* Even darker when clicked */
+  //transform: translateX(2px); /* Slightly move back when clicked */
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* Shaded background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 300px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.create-btn {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.create-btn:hover {
+  background-color: #0056b3;
+}
+
+.modal-content h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.modal-content label {
+  display: block;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.modal-content input[type="text"] {
+  width: 100%;
+  padding: 8px 10px; /* Added symmetrical padding */
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box; /* Ensures padding is included in the width */
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full viewport height to center vertically */
+  text-align: center;
+}
+
+.loading-spinner i {
+  font-size: 60px; /* Large spinner */
+  color: #007bff;
+  margin-bottom: 20px;
+}
+
+.loading-spinner p {
+  font-size: 24px; /* Large text */
+  color: #333;
+}
+
+.accessors-container {
+  margin-left: 20px;
+  margin-right: 20px;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.accessors-container h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.accessors-container ul {
+  list-style: none;
+  padding: 0;
+  li {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+.main-container {
+  display: flex; 
+	flex-direction: row; 
+	flex-wrap: wrap; 
+}
+
+.no-folder-elements {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%; /* This ensures it takes up the entire height of the container */
+  text-align: center; /* To ensure text is centered */
+  //padding: 20px; /* Optional padding to make it look better */
+  font-size: 1.2rem; /* Optional: Adjust font size as needed */
+  color: #757575; /* Optional: Adjust text color for a more subtle look */
+}

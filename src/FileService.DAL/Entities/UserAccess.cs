@@ -25,5 +25,6 @@ namespace FileService.DAL.Entities
         Read = 2,
         Update = 4,
         Delete = 8,
+        Owner = 16
     }
 }

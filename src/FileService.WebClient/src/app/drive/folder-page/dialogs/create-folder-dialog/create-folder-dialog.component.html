@@ -1,0 +1,23 @@
+<h2 mat-dialog-title>Create Folder</h2>
+<form [formGroup]="createFolderForm" (ngSubmit)="onSubmit()">
+  <mat-dialog-content>
+    <mat-form-field appearance="fill" style="width: 100%;">
+      <mat-label>Folder Name</mat-label>
+      <input matInput formControlName="folderName" placeholder="Enter folder name" />
+      <mat-error *ngIf="createFolderForm.get('folderName')?.hasError('required')">
+        Folder name is required.
+      </mat-error>
+      <mat-error *ngIf="createFolderForm.get('folderName')?.hasError('minlength')">
+        Folder name must be at least 3 characters long.
+      </mat-error>
+      <mat-error *ngIf="createFolderForm.get('folderName')?.hasError('invalidSymbols')">
+        Folder name contains forbidden characters.
+      </mat-error>
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()">Cancel</button>
+    <button mat-button color="primary" type="submit" [disabled]="createFolderForm.invalid">Create</button>
+  </mat-dialog-actions>
+</form>

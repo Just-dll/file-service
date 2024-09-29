@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>Share Folder</h2>
+<form [formGroup]="shareForm" (ngSubmit)="onSubmit()">
+  <mat-dialog-content>
+    <mat-form-field appearance="fill" style="width: 100%;">
+      <mat-label>Email</mat-label>
+      <input matInput formControlName="email" placeholder="Recipient's Email" />
+      <mat-error *ngIf="shareForm.get('email')?.hasError('required')">
+        Email is required.
+      </mat-error>
+      <mat-error *ngIf="shareForm.get('email')?.hasError('email')">
+        Please enter a valid email.
+      </mat-error>
+    </mat-form-field>
+
+    <div>
+      <label>Permissions:</label>
+      <div *ngFor="let permission of permissions">
+        <mat-checkbox (change)="togglePermission(permission.value, $event.checked)">
+          {{ permission.name }}
+        </mat-checkbox>
+      </div>
+    </div>
+
+    
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()">Cancel</button>
+    <button mat-button color="primary" type="submit" [disabled]="shareForm.invalid">Share</button>
+  </mat-dialog-actions>
+</form>

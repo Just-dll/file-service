@@ -23,6 +23,12 @@ public class AccessController : ControllerBase
         _accessService = accessService;
     }
 
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<AccessModel>>> GetFolderAccessors(uint folderId)
+    {
+        return Ok(await _accessService.GetAccessors(folderId));
+    }
+
     [HttpGet("/api/Access")]
     public async Task<ActionResult<IEnumerable<FolderModel>>> GetMyAccessedFolders()
     {
@@ -32,13 +38,20 @@ public class AccessController : ControllerBase
             return Unauthorized();
         }
 
-        return Ok(await _accessService.GetAccessibleFoldersAsync(userIdentifier.Value));
+        var userFolderId = HttpContext.GetUserFolderId();
+        return Ok((await _accessService.GetAccessibleFoldersAsync(userIdentifier.Value)).Where(fm => fm.Id != userFolderId));
     }
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<AccessModel>>> GetFolderAccessors(uint folderId)
+    [HttpGet("/api/Folder/{folderId}/path")]
+    public async Task<ActionResult<IEnumerable<FolderShortModel>>> GetAccessedFilePath(uint folderId)
     {
-        return Ok(await _accessService.GetAccessors(folderId));
+        Guid? userIdentifier = HttpContext.User.GetPrincipalIdentifier();
+        if (userIdentifier == null)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(await _accessService.GetFolderAccessiblePath(userIdentifier.Value, folderId));
     }
 
     [HttpPost]
@@ -54,13 +67,18 @@ public class AccessController : ControllerBase
             return BadRequest("You cannot give access to yourself");
         }
 
+        if(model.Permission.HasFlag(AccessPermission.Owner))
+        {
+            return BadRequest("You cannot change or share the ownership");
+        }
+
         try
         {
             return CreatedAtAction(nameof(PostAccess), await _accessService.GiveAccess(folderId, model));
         }
         catch(KeyNotFoundException ex)
         {
-            return BadRequest(ex.Message);
+            return NotFound(ex.Message);
         }
         catch(DbUpdateException)
         {

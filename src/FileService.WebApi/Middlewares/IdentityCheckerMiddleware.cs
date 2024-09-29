@@ -1,13 +1,12 @@
 ﻿using FileService.DAL.Data;
 using FileService.DAL.Entities;
-using MesaProject.ResearchService.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace MesaProject.ResearchService.Extensions;
+namespace FileService.WebApi.Middlewares;
 
 // You may need to install the Microsoft.AspNetCore.Http.Abstractions package into your project
 public class IdentityCheckerMiddleware
@@ -43,12 +42,12 @@ public class IdentityCheckerMiddleware
                 var folder = new Folder() { Name = principalIdentifier.ToString() };
                 context.Folders.Add(folder);
                 await context.SaveChangesAsync();
-                context.UserAccesses.Add(new() 
-                    { 
-                        FolderId = folder.Id, 
-                        UserId = user.Id, 
-                        AccessFlags = AccessPermission.Create | AccessPermission.Read | AccessPermission.Update | AccessPermission.Delete 
-                    });
+                context.UserAccesses.Add(new()
+                {
+                    FolderId = folder.Id,
+                    UserId = user.Id,
+                    AccessFlags = AccessPermission.Create | AccessPermission.Read | AccessPermission.Update | AccessPermission.Delete | AccessPermission.Owner
+                });
                 await context.SaveChangesAsync();
             }
 

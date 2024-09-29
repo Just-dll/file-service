@@ -1,0 +1,21 @@
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item" *ngFor="let folder of breadcrumbs; let last = last">
+        <a *ngIf="!last; else lastBreadcrumb" [routerLink]="['/drive/folder', folder.id]" style="cursor:pointer;">
+          {{ folder.name }}
+        </a>
+        <ng-template #lastBreadcrumb>
+          <button mat-button [matMenuTriggerFor]="menu" style="z-index: 0;">
+            <span>{{ folder.name }}</span>
+          </button>
+    
+          <!-- Dropdown menu -->
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onShareClick(folder.id)">Share</button>
+            <button mat-menu-item (click)="onDeleteClick(folder.id)">Delete</button>
+            <button mat-menu-item (click)="onDownloadClick(folder.id)">Download</button>
+          </mat-menu>
+        </ng-template>
+      </li>
+    </ol>
+  </nav> 

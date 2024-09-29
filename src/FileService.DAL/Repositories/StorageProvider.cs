@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,15 +27,24 @@ namespace FileService.DAL.Repositories
             return combinedPath;
         }
 
-        public async Task<byte[]?> ReadFileAsync(string relativePath, string fileName, CancellationToken cancellationToken = default)
+        public async Task<byte[]> ReadFileAsync(string relativePath, string fileName, CancellationToken cancellationToken = default)
         {
             string filePath = Path.Combine(_basicFolder, relativePath, fileName);
 
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true);
-            var buffer = new byte[stream.Length];
-            await stream.ReadAsync(buffer, cancellationToken);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream, cancellationToken);
+            return memoryStream.ToArray();
+        }
 
-            return buffer;
+        public async Task<byte[]> ReadFolderAsync(string relativePath, CancellationToken cancellationToken = default)
+        {
+            string filePath = Path.Combine(_basicFolder, relativePath);
+
+            using var stream = new MemoryStream();
+            await Task.Run(() => ZipFile.CreateFromDirectory(filePath, stream), cancellationToken);
+
+            return stream.ToArray();
         }
 
         public Task DeleteItemAsync(string relativePath, string? fileName = default, CancellationToken cancellation = default)
@@ -48,19 +58,19 @@ namespace FileService.DAL.Repositories
 
             try
             {
-                if (string.IsNullOrEmpty(fileName))
-                {
-                    if (Directory.Exists(itemPath))
-                    {
-                        Directory.Delete(itemPath, true);
-                    }
-                }
-                else
+                if (!string.IsNullOrEmpty(fileName))
                 {
                     string filePath = Path.Combine(itemPath, fileName);
                     if (File.Exists(filePath))
                     {
                         File.Delete(filePath);
+                    }
+                }
+                else
+                {
+                    if (Directory.Exists(itemPath))
+                    {
+                        Directory.Delete(itemPath, true);
                     }
                 }
             }
@@ -74,11 +84,11 @@ namespace FileService.DAL.Repositories
         }
 
 
-        public Task UpdateFolderAsync(string currentRelativePath, string destination, CancellationToken cancellationToken = default)
+        public Task UpdateFolderAsync(string currentRelativePath, string relativeDestination, CancellationToken cancellationToken = default)
         {
             string intPathCurr = Path.Combine(_basicFolder, currentRelativePath);
 
-            string intPathDest = Path.Combine(_basicFolder, destination);
+            string intPathDest = Path.Combine(_basicFolder, relativeDestination);
 
             if (Directory.Exists(intPathCurr) && intPathCurr != intPathDest)
             {
@@ -87,5 +97,6 @@ namespace FileService.DAL.Repositories
 
             return Task.CompletedTask;
         }
+
     }
 }

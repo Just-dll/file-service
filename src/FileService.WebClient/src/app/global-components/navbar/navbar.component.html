@@ -1,0 +1,19 @@
+<nav class="navbar">
+  <div class="navbar-brand">
+    <h1><a routerLink="/">Brand Name</a></h1>
+  </div>
+  <div class="navbar-toggle" (click)="toggleNavbar()">
+    <img src="assets/hamburger.png" alt="Menu">
+  </div>
+  <div class="navbar-links" [ngClass]="{'is-active': isNavbarOpen}">
+    @if(anonymous$ | async) {
+      <a href="/bff/login" >Login</a>
+    }
+
+    @if(authenticated$ | async) {
+      Hi, {{ username$ | async }}
+      <a routerLink="/drive/my-drive/">My Drive</a>
+      <a href="{{logoutUrl$ | async}}">Logout</a>
+    } 
+  </div>
+</nav>

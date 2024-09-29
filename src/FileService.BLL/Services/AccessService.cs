@@ -46,7 +46,11 @@ namespace FileService.BLL.Services
             var user = await _identityService.GetUserByEmail(model.Email) ?? throw new KeyNotFoundException();
             var folder = await _dbContext.Folders.FindAsync(folderId) ?? throw new KeyNotFoundException();
             
-            var entry = _dbContext.UserAccesses.Add(new() { FolderId = folder.Id, UserId = user.Id, AccessFlags = model.Permission });
+            var entry = _dbContext.UserAccesses.Add(new() { 
+                FolderId = folder.Id, 
+                UserId = user.Id, 
+                AccessFlags = model.Permission 
+            });
             await _dbContext.SaveChangesAsync();
 
             return _mapper.Map<AccessModel>(entry.Entity);
@@ -64,16 +68,20 @@ namespace FileService.BLL.Services
 
             return user.UserAccesses
                 .Where(ua => folderPath.Select(f => f.Id).Contains(ua.FolderId))
-                .Any(ua => ua.AccessFlags.HasFlag(requiredPermission));
+                .Any(ua => ua.AccessFlags.HasFlag(AccessPermission.Owner) || ua.AccessFlags.HasFlag(requiredPermission));
         }
-
         public async Task<AccessModel> UpdateAccess(uint folderId, AccessShortModel model)
         {
             var currAccess = await _dbContext.UserAccesses
                 .Include(ua => ua.User)
                 .Include(ua => ua.Folder)
-                .FirstOrDefaultAsync(ua => ua.FolderId == folderId && ua.User.Email == model.Email) 
+                .FirstOrDefaultAsync(ua => ua.FolderId == folderId && ua.User.Email == model.Email)
                 ?? throw new KeyNotFoundException();
+
+            if (currAccess.AccessFlags.HasFlag(AccessPermission.Owner) ^ model.Permission.HasFlag(AccessPermission.Owner))
+            {
+                throw new InvalidOperationException("Change of ownership is not allowed");
+            }
 
             currAccess.AccessFlags = model.Permission;
 
@@ -91,7 +99,7 @@ namespace FileService.BLL.Services
                 .Include(ua => ua.User)
                 .FirstOrDefault(ua => ua.User.Email == email && ua.FolderId == folderId);
 
-            if (userAccess != null)
+            if (userAccess != null && !userAccess.AccessFlags.HasFlag(AccessPermission.Owner))
             {
                 _dbContext.Remove(userAccess);
                 await _dbContext.SaveChangesAsync();
@@ -107,5 +115,38 @@ namespace FileService.BLL.Services
 
             return user.UserAccesses.Select(ua => _mapper.Map<FolderModel>(ua.Folder));
         }
+
+        public async Task<IEnumerable<FolderShortModel>> GetFolderAccessiblePath(Guid userId, uint folderId)
+        {
+            var folderPath = await _dbContext.Folders
+               .FromSqlRaw("EXEC LoadAllOuterFolders @FolderId = {0}", folderId)
+               .ToListAsync();
+
+            if (folderPath == null || folderPath.Count == 0)
+            {
+                throw new DirectoryNotFoundException();
+            }
+
+            var user = await _dbContext.Users
+                .Include(u => u.UserAccesses)
+                    .ThenInclude(u => u.Folder)
+                .FirstOrDefaultAsync(u => u.IdentityGuid == userId)
+                ?? throw new UnauthorizedAccessException();
+
+            for (int i = 0; i < folderPath.Count; i++)
+            {
+                if (!user.UserAccesses.Any(ua => ua.FolderId == folderPath[i].Id))
+                {
+                    folderPath.Remove(folderPath[i]);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return folderPath.Select(f => _mapper.Map<FolderShortModel>(f));
+        }
+
     }
 }

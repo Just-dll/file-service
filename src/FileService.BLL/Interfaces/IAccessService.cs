@@ -12,6 +12,7 @@ namespace FileService.BLL.Interfaces
     public interface IAccessService
     {
         Task<IEnumerable<FolderModel>> GetAccessibleFoldersAsync(Guid userId);
+        Task<IEnumerable<FolderShortModel>> GetFolderAccessiblePath(Guid userId, uint folderId);
         Task<bool> GetAccessVerification(Guid userId, uint folderId, AccessPermission requiredPermission);
         Task<IEnumerable<AccessModel>> GetAccessors(uint folderId);
         Task<AccessModel> GiveAccess(uint folderId, AccessShortModel model);

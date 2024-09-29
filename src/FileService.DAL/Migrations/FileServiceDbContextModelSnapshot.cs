@@ -44,6 +44,9 @@ namespace FileService.DAL.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FolderId");
@@ -81,8 +84,15 @@ namespace FileService.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("IdentityGuid")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -96,6 +106,9 @@ namespace FileService.DAL.Migrations
 
                     b.Property<long>("FolderId")
                         .HasColumnType("bigint");
+
+                    b.Property<int>("AccessFlags")
+                        .HasColumnType("int");
 
                     b.HasKey("UserId", "FolderId");
 
@@ -119,7 +132,8 @@ namespace FileService.DAL.Migrations
                 {
                     b.HasOne("FileService.DAL.Entities.Folder", "OuterFolder")
                         .WithMany("InnerFolders")
-                        .HasForeignKey("FolderId");
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("OuterFolder");
                 });

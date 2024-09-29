@@ -6,6 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using MesaProject.IdentityService.Services;
 using IdentityService;
+using Google.Protobuf.WellKnownTypes;
+using Duende.IdentityServer.Services;
+using Microsoft.Extensions.DependencyInjection;
+using IdentityService.Services;
+using IdentityService.Options;
 
 namespace MesaProject.IdentityService
 {
@@ -31,6 +36,20 @@ namespace MesaProject.IdentityService
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
+            builder.Services.Configure<EmailSenderOptions>(builder.Configuration.GetSection("Mail"));
+
+            builder.Services.AddTransient<IEmailSender<ApplicationUser>, EmailSender>();
+
+            builder.Services.AddSingleton<ICorsPolicyService>((container) =>
+            {
+                var logger = container.GetRequiredService<ILogger<DefaultCorsPolicyService>>();
+
+                return new DefaultCorsPolicyService(logger)
+                {
+                    AllowedOrigins = { "https://localhost:4200", builder.Configuration["FileService:Url"], builder.Configuration["Bff:Url"] }
+                };
+            });
+            
             builder.Services
                 .AddIdentityServer(options =>
                 {
@@ -81,6 +100,18 @@ namespace MesaProject.IdentityService
             });
 
             builder.Services.AddLocalApiAuthentication();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowLocalhost4200", policy =>
+                {
+                    policy.WithOrigins("https://localhost:4200")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
+                });
+            });
+
             return builder.Build();
         }
 
@@ -97,6 +128,12 @@ namespace MesaProject.IdentityService
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors("AllowLocalhost4200");
+            //app.Use(async (context, next) =>
+            //{
+            //    context.Response.Headers.Add("Content-Security-Policy", "script-src 'sha256-fa5rxHhZ799izGRP38+h4ud5QXNT0SFaFlh4eqDumBI=' https://localhost:5001;");
+            //    await next();
+            //});
             app.UseStaticFiles();
             app.UseRouting();
             app.UseIdentityServer();

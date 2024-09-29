@@ -1,0 +1,41 @@
+.file-item {
+    cursor: pointer;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    color: #555;
+//  cursor: pointer;
+    i {
+      margin-right: 10px;
+      color: #28a745;
+    }
+    &:hover {
+      background-color: #eeeeee;
+      .folder-options {
+        display: flex;
+      }
+    }
+  }
+  
+.folder-options {
+  display: none;
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  
+  i {
+    color: black;
+    padding: 5px; /* Optional: add some padding to the icons */
+    border-radius: 5px; /* Optional: round the corners */
+  }
+
+  /* Add hover state to change background color */
+  i:hover {
+    background-color: #ddd; /* A darker background on hover */
+    //color: white; /* Optional: change icon color on hover */
+  }
+}
+  
+  

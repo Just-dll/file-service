@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,77 +22,27 @@ namespace FileService.BLL.Services
         private readonly FileServiceDbContext _dbContext;
         private readonly IStorageProvider _storageProvider;
         private readonly IMapper _mapper;
+        private readonly IFolderService _folderService;
+        //private static readonly ReadOnlyDictionary<string, string> MimeTypes = new(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        //{
+        //    { ".jpg", "image/jpeg" },
+        //    { ".jpeg", "image/jpeg" },
+        //    { ".png", "image/png" },
+        //    { ".pdf", "application/pdf" },
+        //    { ".txt", "text/plain" }
+        //});
 
-        public FileService(FileServiceDbContext context, IStorageProvider storageProvider, IMapper mapper)
+        public FileService(FileServiceDbContext context, IStorageProvider storageProvider, IMapper mapper, IFolderService folderService)
         {
             _dbContext = context;
             _storageProvider = storageProvider;
             _mapper = mapper;
+            _folderService = folderService;
         }
 
         public async Task<FileModel?> GetFileAsync(uint folderId, uint fileId)
         {
-            return _mapper.Map<FileModel?>(await _dbContext.Files.FirstOrDefaultAsync(f => f.Id == fileId && f.FolderId == folderId));
-        }
-
-        public async Task<FileShortModel> UploadFileAsync(IFormFile file, string filePath)
-        {
-            if (await _dbContext.Files.AnyAsync(f => f.Name == file.FileName && EF.Functions.Like(f.InternalFilePath, $"%{filePath}")))
-            {
-                throw new AlreadyExistsException($"The file '{file.FileName}' already exists in the specified path.");
-            }
-
-            string intFilePath = await _storageProvider.UploadFileAsync(filePath, file);
-
-            var folderNames = filePath.Split([Path.PathSeparator, Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, Path.VolumeSeparatorChar], StringSplitOptions.RemoveEmptyEntries);
-
-            // Start with the root folder (assuming folderNames[0] is the root)
-            Folder? parentFolder = null;
-            Folder? currentFolder = null;
-
-            foreach (var folderName in folderNames)
-            {
-                currentFolder = await _dbContext.Folders
-                    .Where(f => f.Name == folderName && f.OuterFolder == parentFolder)
-                    .FirstOrDefaultAsync();
-
-                if (currentFolder == null)
-                {
-                    // Create the folder if it doesn't exist
-                    currentFolder = new Folder
-                    {
-                        Name = folderName,
-                        OuterFolder = parentFolder
-                    };
-
-                    _dbContext.Folders.Add(currentFolder);
-                    await _dbContext.SaveChangesAsync();
-                }
-
-                // Move to the next level
-                parentFolder = currentFolder;
-            }
-
-            // currentFolder now represents the innermost folder
-            if (currentFolder == null)
-            {
-                throw new InvalidOperationException("Folder structure creation failed.");
-            }
-
-            // Save file metadata to the database
-            var dbFile = new DAL.Entities.File
-            {
-                Name = file.FileName,
-                InternalFilePath = intFilePath,
-                FolderId = currentFolder.Id,
-                Size = file.Length,
-                CreationDate = DateTime.UtcNow
-            };
-
-            _dbContext.Files.Add(dbFile);
-            await _dbContext.SaveChangesAsync();
-
-            return _mapper.Map<FileShortModel>(dbFile);
+            return _mapper.Map<FileModel?>(await _dbContext.Files.AsNoTracking().FirstOrDefaultAsync(f => f.Id == fileId && f.FolderId == folderId));
         }
 
         public async Task DeleteFileAsync(uint folderId, uint fileId)
@@ -108,21 +59,6 @@ namespace FileService.BLL.Services
             }
         }
 
-        public async Task<FileDownloadModel?> DownloadFile(string filePath, string fileName)
-        {
-            var fileBytes = await _storageProvider.ReadFileAsync(filePath, fileName);
-            if (fileBytes == null)
-            {
-                return null;
-            }
-            return new FileDownloadModel { Data = fileBytes, Name = fileName };
-        }
-
-        public Task DeleteFileAsync(string filePath, string fileName)
-        {
-            throw new NotImplementedException();
-        }
-
         public async Task<FileDownloadModel?> DownloadFile(uint folderId, uint fileId)
         {
             var file = await _dbContext.Files.FirstOrDefaultAsync(f => f.Id == fileId && f.FolderId == folderId);
@@ -132,41 +68,30 @@ namespace FileService.BLL.Services
                 return null;
             }
 
-            var folderPath = await _dbContext.Folders
-               .FromSqlRaw("EXEC LoadAllOuterFolders @FolderId = {0}", file.FolderId)
-               .ToListAsync();
+            var folderPath = await _folderService.GetFullFolderPathAsync(folderId);
 
             var fullPath = string.Join('/', folderPath.Select(f => f.Name));
 
             var bytes = await _storageProvider.ReadFileAsync(fullPath, file.Name);
 
-            if (bytes == null)
-            {
-                return null;
-            }
-
             return new FileDownloadModel { Data = bytes, Name = file.Name };
-        }
-
-        public Task DeleteFileAsync(uint fileId)
-        {
-            throw new NotImplementedException();
         }
 
         public async Task<FileShortModel> UploadFileAsync(IFormFile file, uint folderId)
         {
-            var folderPath = await _dbContext.Folders
-               .FromSqlRaw("EXEC LoadAllOuterFolders @FolderId = {0}", folderId)
-               .ToListAsync();
-
-            if (folderPath == null || folderPath.Count < 0)
+            var folder = await _dbContext.Folders.Include(f => f.Files).FirstOrDefaultAsync(f => f.Id == folderId) 
+                ?? throw new DirectoryNotFoundException();
+            
+            if (folder.Files.Any(f => f.Name == file.Name))
             {
-                throw new DirectoryNotFoundException();
+                throw new AlreadyExistsException(file.Name);
             }
+
+            var folderPath = await _folderService.GetFullFolderPathAsync(folderId);
 
             var fullRelativePath = string.Join('/', folderPath.Select(f => f.Name));
 
-            var intPath = await _storageProvider.UploadFileAsync(fullRelativePath, file);
+            string intPath = await _storageProvider.UploadFileAsync(fullRelativePath, file);
 
             var dbFile = new DAL.Entities.File
             {
@@ -182,6 +107,47 @@ namespace FileService.BLL.Services
 
             return _mapper.Map<FileShortModel>(dbFile);
         }
-    }
 
+        public async Task<FilePreviewModel?> GetFilePreviewAsync(uint folderId, uint fileId)
+        {
+            var file = await _dbContext.Files.FirstOrDefaultAsync(f => f.Id == fileId && f.FolderId == folderId);
+            if (file == null)
+            {
+                return null;
+            }
+
+            var folderPath = await _folderService.GetFullFolderPathAsync(folderId);
+            var fullPath = string.Join('/', folderPath.Select(f => f.Name));
+
+            // Get MIME type
+            string mimeType = GetMimeType(file.Name);
+
+            // Return the preview depending on the MIME type
+            var fileBytes = await _storageProvider.ReadFileAsync(fullPath, file.Name);
+
+            // You can apply different logic here to limit the size or return thumbnails/previews for certain types.
+            // E.g., for images, return a scaled-down version, or for PDF, return the first page.
+
+            return new FilePreviewModel
+            {
+                Data = fileBytes,
+                Name = file.Name,
+                ContentType = mimeType
+            };
+        }
+
+        private static string GetMimeType(string fileName)
+        {
+            string extension = Path.GetExtension(fileName).ToLower();
+
+            return extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".pdf" => "application/pdf",
+                ".txt" => "text/plain",
+                _ => "application/octet-stream", // Default for unknown types
+            };
+        }
+    }
 }

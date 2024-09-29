@@ -1,0 +1,15 @@
+.main-container {
+  display: flex;
+  flex-direction: row; /* This places the sidebar and driveHome side by side */
+  height: calc(100vh - 60px); /* Full height minus the navbar */
+}
+  
+  
+.driveHome {
+  flex-grow: 1; /* This makes driveHome take up the remaining space */
+  margin: 8px;
+  margin-left: 20px;
+  //padding: 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}

@@ -41,15 +41,16 @@ namespace FileService.WebApi.Middlewares
             // Determine the status code based on the exception type
             switch (exception)
             {
+                case DirectoryNotFoundException:
+                case KeyNotFoundException:
+                    statusCode = HttpStatusCode.NotFound;
+                    message = "Resource not found.";
+                    break;
                 case IOException:
                 case ArgumentNullException:
                 case ArgumentException:
                     statusCode = HttpStatusCode.BadRequest;
                     message = "Bad request. Please check your input.";
-                    break;
-                case KeyNotFoundException:
-                    statusCode = HttpStatusCode.NotFound;
-                    message = "Resource not found.";
                     break;
                 case UnauthorizedAccessException:
                     statusCode = HttpStatusCode.Unauthorized;

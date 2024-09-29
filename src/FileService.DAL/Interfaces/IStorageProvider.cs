@@ -29,8 +29,8 @@ namespace FileService.DAL.Interfaces
         /// <param name="fileName"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<byte[]?> ReadFileAsync(string relativePath, string fileName, CancellationToken cancellationToken = default);
-        
+        Task<byte[]> ReadFileAsync(string relativePath, string fileName, CancellationToken cancellationToken = default);
+        Task<byte[]> ReadFolderAsync(string relativePath, CancellationToken cancellationToken = default);
         Task DeleteItemAsync(string relativePath, string? filename = default, CancellationToken cancellation = default);
         
         Task UpdateFolderAsync(string currentRelativePath, string destination, CancellationToken cancellationToken = default);
