@@ -24,7 +24,9 @@ namespace FileService.BLL.MapperProfiles
 
             CreateMap<Folder, FolderShortModel>();
 
-            CreateMap<Folder, FolderModel>();
+            CreateMap<Folder, FolderModel>()
+                .ForMember(fm => fm.Id, opt => opt.MapFrom(f => (int)f.Id))
+                .ForMember(fm => fm.Name, opt => opt.MapFrom(f => f.Name));
 
             CreateMap<FolderModel, Folder>()
                 .ForMember(fm => fm.InnerFolders, opt => opt.Ignore())
@@ -43,7 +45,6 @@ namespace FileService.BLL.MapperProfiles
                 .ForMember(fam => fam.FolderName, opt => opt.MapFrom(ua => ua.Folder.Name))
                 .ForMember(fam => fam.User, opt => opt.MapFrom(ua => ua.User))
                 .ForMember(fam => fam.Permissions, opt => opt.MapFrom(ua => ua.AccessFlags.ToString()));
-
         }
 
         private static string ConvertSize(long size)

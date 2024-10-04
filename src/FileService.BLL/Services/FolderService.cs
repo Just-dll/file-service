@@ -13,22 +13,19 @@ namespace FileService.BLL.Services
 {
     public class FolderService : IFolderService
     {
-        private readonly FileServiceDbContext _context;
+        private readonly IUnitOfWork unitOfWork;
         private readonly IMapper _mapper;
         private readonly IStorageProvider _storageProvider;
-        public FolderService(FileServiceDbContext context, IMapper mapper, IStorageProvider provider)
+        public FolderService(IUnitOfWork unitOfWork, IMapper mapper, IStorageProvider provider)
         {
-            _context = context;
             _mapper = mapper;
             _storageProvider = provider;
+            this.unitOfWork = unitOfWork;
         }
 
         public async Task<FolderModel?> GetFolderAsync(uint folderId)
         {
-            var folder = await _context.Folders
-                .Include(f => f.InnerFolders)
-                .Include(f => f.Files)
-                .FirstOrDefaultAsync(f => f.Id == folderId);
+            var folder = await unitOfWork.FolderRepository.GetFolderByIdAsync(folderId);
             return _mapper.Map<FolderModel?>(folder);
         }
 
@@ -40,24 +37,26 @@ namespace FileService.BLL.Services
                 FolderId = parentFolderId,
             };
 
-            _context.Folders.Add(folder);
-            await _context.SaveChangesAsync();
+            unitOfWork.FolderRepository.CreateFolder(folder);
+
+            await unitOfWork.SaveChangesAsync();
 
             return _mapper.Map<FolderModel>(folder);
         }
 
         public async Task DeleteFolderAsync(uint folderId)
         {
-            var folder = await _context.Folders.FindAsync(folderId);
+            //var folder = await _context.Folders.FindAsync(folderId);
+            var folder = await unitOfWork.FolderRepository.GetFolderByIdAsync(folderId);
             if (folder != null)
             {
-                var folderPath = await GetFullFolderPathAsync(folderId);
+                var folderPath = await unitOfWork.FolderRepository.GetOuterFoldersAsync(folderId);
 
                 var fullPath = string.Join('/', folderPath.Select(f => f.Name));
                 await _storageProvider.DeleteItemAsync(fullPath);
 
-                _context.Folders.Remove(folder);
-                await _context.SaveChangesAsync();
+                unitOfWork.FolderRepository.DeleteFolder(folder);
+                await unitOfWork.SaveChangesAsync();
             }
         }
 
@@ -65,7 +64,8 @@ namespace FileService.BLL.Services
         {
             try
             {
-                var folderPath = (await GetFullFolderPathAsync(folderId)).Select(f => f.Name).ToList();
+                var folderEntity = await unitOfWork.FolderRepository.GetFolderByIdAsync(folderId) ?? throw new KeyNotFoundException();
+                var folderPath = (await unitOfWork.FolderRepository.GetOuterFoldersAsync(folderId)).Select(f => f.Name).ToList();
 
                 var fullPath = string.Join('/', folderPath);
                 folderPath[^1] = folder.Name; 
@@ -73,12 +73,11 @@ namespace FileService.BLL.Services
 
                 await _storageProvider.UpdateFolderAsync(fullPath, dest);
 
-                var folderEntity = await _context.Folders.FindAsync(folderId) ?? throw new KeyNotFoundException();
                 _mapper.Map(folder, folderEntity);
 
-                _context.Entry(folderEntity).State = EntityState.Modified;
+                unitOfWork.FolderRepository.UpdateFolder(folderEntity);
 
-                await _context.SaveChangesAsync();
+                await unitOfWork.SaveChangesAsync();
                 //_context.Database.CommitTransaction();
             }
             catch (Exception ex)
@@ -90,19 +89,15 @@ namespace FileService.BLL.Services
 
         public async Task<FolderArchiveModel?> GetFolderArchiveAsync(uint folderId)
         {
-            // Fetch the folder entity (root folder)
-            var folder = await _context.Folders
-                .Include(f => f.InnerFolders)
-                .Include(f => f.Files)
-                .FirstOrDefaultAsync(f => f.Id == folderId);
+            var folder = await unitOfWork.FolderRepository.GetFolderByIdAsync(folderId);
 
             if (folder == null)
             {
                 return null;
             }
 
-            // Get full folder path from root downwards
-            var folderPath = await GetFullFolderPathAsync(folderId); // Use existing method to build folder path
+            var folderPath = await unitOfWork.FolderRepository.GetOuterFoldersAsync(folderId);
+
             var relativePath = string.Join('/', folderPath.Select(f => f.Name));
 
             // Zip the folder using the new IStorageProvider.ReadFolderAsync
@@ -116,36 +111,11 @@ namespace FileService.BLL.Services
             };
         }
 
-        //private async Task AddFolderToArchive(Folder folder, string relativePath, ZipArchive zipArchive)
-        //{
-        //    // Add all files in this folder to the zip archive
-        //    foreach (var file in folder.Files)
-        //    {
-        //        var fileBytes = await _storageProvider.ReadFileAsync(relativePath, file.Name);
-        //        var entry = zipArchive.CreateEntry(Path.Combine(relativePath, file.Name));
-
-        //        using (var entryStream = entry.Open())
-        //        {
-        //            await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
-        //        }
-        //    }
-
-        //    // Recursively process all inner folders
-        //    foreach (var innerFolder in folder.InnerFolders)
-        //    {
-        //        var innerFolderPath = Path.Combine(relativePath, innerFolder.Name);
-        //        // Recursively add inner folder contents
-        //        await AddFolderToArchive(innerFolder, innerFolderPath, zipArchive);
-        //    }
-        //}
-
         public async Task<IEnumerable<FolderShortModel>> GetFullFolderPathAsync(uint folderId)
         {
-            var folderPath = await _context.Folders
-                   .FromSqlRaw("EXEC LoadAllOuterFolders @FolderId = {0}", folderId)
-                   .ToListAsync();
+            var folderPath = await unitOfWork.FolderRepository.GetOuterFoldersAsync(folderId);
 
-            if (folderPath.Count < 1)
+            if (!folderPath.Any())
             {
                 throw new DirectoryNotFoundException();
             }

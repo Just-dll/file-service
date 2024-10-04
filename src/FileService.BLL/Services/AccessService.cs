@@ -4,6 +4,7 @@ using FileService.BLL.Models;
 using FileService.BLL.Models.Short;
 using FileService.DAL.Data;
 using FileService.DAL.Entities;
+using FileService.DAL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -15,56 +16,50 @@ namespace FileService.BLL.Services
 {
     public class AccessService : IAccessService
     {
-        private readonly FileServiceDbContext _dbContext;
         private readonly IIdentityService _identityService;
         private readonly IMapper _mapper;
-        public AccessService(FileServiceDbContext dbContext, IIdentityService identityService, IMapper mapper)
+        private readonly IUnitOfWork _unitOfWork;
+
+        public AccessService(IIdentityService identityService, IMapper mapper, IUnitOfWork unitOfWork)
         {
-            _dbContext = dbContext;
             _identityService = identityService;
             _mapper = mapper;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<IEnumerable<AccessModel>> GetAccessors(uint folderId)
         {
-            var folderPath = await _dbContext.Folders
-                .FromSqlRaw("EXEC LoadAllOuterFolders @FolderId = {0}", folderId)
-                .ToListAsync();
-
-            var folderPathIds = folderPath.Select(x => x.Id);
-
-            var accessors = await _dbContext.UserAccesses
-                .Include(ua => ua.User)
-                .Where(ua => folderPathIds.Contains(ua.FolderId))
-                .ToListAsync();
-
-            return accessors.DistinctBy(x => x.UserId).Select(ua => _mapper.Map<AccessModel>(ua));
+            var userAccesses = await _unitOfWork.UserAccessRepository.GetFolderAccessors(folderId);
+            return userAccesses.Select(ua => _mapper.Map<AccessModel>(ua));
         }
 
         public async Task<AccessModel> GiveAccess(uint folderId, AccessShortModel model)
         {
             var user = await _identityService.GetUserByEmail(model.Email) ?? throw new KeyNotFoundException();
-            var folder = await _dbContext.Folders.FindAsync(folderId) ?? throw new KeyNotFoundException();
             
-            var entry = _dbContext.UserAccesses.Add(new() { 
-                FolderId = folder.Id, 
-                UserId = user.Id, 
-                AccessFlags = model.Permission 
-            });
-            await _dbContext.SaveChangesAsync();
+            var folder = await _unitOfWork.FolderRepository.GetFolderByIdAsync(folderId) ?? throw new KeyNotFoundException();
 
-            return _mapper.Map<AccessModel>(entry.Entity);
+            var userAccess = new UserAccess()
+            {
+                FolderId = folder.Id,
+                UserId = user.Id,
+                AccessFlags = model.Permission,
+                User = user,
+                Folder = folder
+            };
+
+            _unitOfWork.UserAccessRepository.AddUserAccess(userAccess);
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return _mapper.Map<AccessModel>(userAccess);
         }
 
         public async Task<bool> GetAccessVerification(Guid userId, uint folderId, AccessPermission requiredPermission)
         {
-            var folderPath = await _dbContext.Folders
-               .FromSqlRaw("EXEC LoadAllOuterFolders @FolderId = {0}", folderId)
-               .ToListAsync();
+            var user = await _unitOfWork.UserRepository.GetUserById(userId) ?? throw new UnauthorizedAccessException();
 
-            var user = await _dbContext.Users
-                .Include(u => u.UserAccesses)
-                .FirstOrDefaultAsync(u => u.IdentityGuid == userId) ?? throw new UnauthorizedAccessException();
+            var folderPath = await _unitOfWork.FolderRepository.GetOuterFoldersAsync(folderId);
 
             return user.UserAccesses
                 .Where(ua => folderPath.Select(f => f.Id).Contains(ua.FolderId))
@@ -72,11 +67,9 @@ namespace FileService.BLL.Services
         }
         public async Task<AccessModel> UpdateAccess(uint folderId, AccessShortModel model)
         {
-            var currAccess = await _dbContext.UserAccesses
-                .Include(ua => ua.User)
-                .Include(ua => ua.Folder)
-                .FirstOrDefaultAsync(ua => ua.FolderId == folderId && ua.User.Email == model.Email)
-                ?? throw new KeyNotFoundException();
+            var user = await _unitOfWork.UserRepository.GetUserByEmail(model.Email) ?? throw new InvalidOperationException();
+
+            var currAccess = await _unitOfWork.UserAccessRepository.GetUserAccessAsync(folderId, user.IdentityGuid) ?? throw new KeyNotFoundException();
 
             if (currAccess.AccessFlags.HasFlag(AccessPermission.Owner) ^ model.Permission.HasFlag(AccessPermission.Owner))
             {
@@ -85,9 +78,9 @@ namespace FileService.BLL.Services
 
             currAccess.AccessFlags = model.Permission;
 
-            _dbContext.Entry(currAccess).State = EntityState.Modified;
+            _unitOfWork.UserAccessRepository.UpdateUserAccess(currAccess);
 
-            await _dbContext.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
 
             return _mapper.Map<AccessModel>(currAccess);
         }
@@ -95,43 +88,43 @@ namespace FileService.BLL.Services
 
         public async Task DeleteAccess(uint folderId, string email)
         {
-            var userAccess = _dbContext.UserAccesses
-                .Include(ua => ua.User)
-                .FirstOrDefault(ua => ua.User.Email == email && ua.FolderId == folderId);
+            var user = await _unitOfWork.UserRepository.GetUserByEmail(email);
 
-            if (userAccess != null && !userAccess.AccessFlags.HasFlag(AccessPermission.Owner))
+            if (user == null)
             {
-                _dbContext.Remove(userAccess);
-                await _dbContext.SaveChangesAsync();
+                return;
+            }
+
+            var userAccess = user.UserAccesses.FirstOrDefault(ua => ua.FolderId == folderId);
+
+            if(userAccess != null)
+            {
+                if(userAccess.AccessFlags.HasFlag(AccessPermission.Owner))
+                {
+                    throw new InvalidOperationException("Deletion of ownership is not allowed");
+                }
+
+                _unitOfWork.UserAccessRepository.DeleteUserAccess(userAccess);
+                await _unitOfWork.SaveChangesAsync();
             }
         }
 
         public async Task<IEnumerable<FolderModel>> GetAccessibleFoldersAsync(Guid userId)
         {
-            var user = await _dbContext.Users
-                .Include(u => u.UserAccesses)
-                    .ThenInclude(u => u.Folder)
-                .FirstOrDefaultAsync(u => u.IdentityGuid == userId) ?? throw new UnauthorizedAccessException();
-
+            var user = await _unitOfWork.UserRepository.GetUserById(userId) ?? throw new UnauthorizedAccessException();
             return user.UserAccesses.Select(ua => _mapper.Map<FolderModel>(ua.Folder));
         }
 
         public async Task<IEnumerable<FolderShortModel>> GetFolderAccessiblePath(Guid userId, uint folderId)
         {
-            var folderPath = await _dbContext.Folders
-               .FromSqlRaw("EXEC LoadAllOuterFolders @FolderId = {0}", folderId)
-               .ToListAsync();
-
+            var folderPath = (await _unitOfWork.FolderRepository.GetOuterFoldersAsync(folderId)).ToList();
+            
             if (folderPath == null || folderPath.Count == 0)
             {
                 throw new DirectoryNotFoundException();
             }
 
-            var user = await _dbContext.Users
-                .Include(u => u.UserAccesses)
-                    .ThenInclude(u => u.Folder)
-                .FirstOrDefaultAsync(u => u.IdentityGuid == userId)
-                ?? throw new UnauthorizedAccessException();
+            var user = await _unitOfWork.UserRepository.GetUserById(userId) ?? throw new UnauthorizedAccessException();
 
             for (int i = 0; i < folderPath.Count; i++)
             {

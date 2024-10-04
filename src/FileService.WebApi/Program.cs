@@ -5,6 +5,7 @@ using FileService.BLL.MapperProfiles;
 using FileService.BLL.Models;
 using FileService.BLL.Services;
 using FileService.DAL.Data;
+using FileService.DAL.Extensions;
 using FileService.DAL.Interfaces;
 using FileService.DAL.Repositories;
 using FileService.WebApi.Filters;
@@ -57,12 +58,16 @@ public class Program
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        builder.Services.AddTransient<IDateTimeService, DateTimeService>();
         builder.Services.AddScoped<IFileService, BLL.Services.FileService>();
         builder.Services.AddScoped<IFolderService, FolderService>();
         builder.Services.AddScoped<IAccessService, AccessService>();
         builder.Services.AddScoped<IIdentityService, IdentityService>();
+        // Rewrite to configuration through the ENV in Dockerfile
+        var storageConfig = configuration.GetSection("StorageConfiguration") ?? throw new ArgumentNullException(nameof(args)); ;
         builder.Services.AddScoped<IStorageProvider>(sp =>
-            new StorageProvider(Path.Combine(Directory.GetCurrentDirectory(), "FileServiceStorage")));
+            new StorageProvider(storageConfig["Directory"] ?? throw new ArgumentNullException(nameof(args))));
+        builder.Services.AddDALServices();
         builder.Services.AddScoped<FolderAccessFilter>();
         builder.Services.AddAutoMapper(config => config.AddProfile<AutoMapperProfile>());
 
@@ -80,19 +85,12 @@ public class Program
                 // options.ForwardChallenge = "oidc";
             });
 
-        builder.Services.AddGrpcClient<Identity.IdentityClient>(options =>
-        {
-            options.Address = new Uri(identitySection["Url"]);
-        }).ConfigurePrimaryHttpMessageHandler(() =>
-        {
-            var handler = new HttpClientHandler
+        builder.Services.AddGrpcClient<Identity.IdentityClient>(options => options.Address = new Uri(identitySection["Url"]))
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback =
                 HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-            };
-
-            return handler;
-        });
+            });
 
         //builder.Services.AddStackExchangeRedisCache(options =>
         //{

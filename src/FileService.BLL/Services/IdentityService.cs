@@ -2,6 +2,7 @@
 using FileService.BLL.Interfaces;
 using FileService.DAL.Data;
 using FileService.DAL.Entities;
+using FileService.DAL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -15,15 +16,15 @@ namespace FileService.BLL.Services
     public class IdentityService : IIdentityService
     {
         private readonly IdentityClient identityClient;
-        private readonly FileServiceDbContext dbContext;
-        public IdentityService(IdentityClient identityClient, FileServiceDbContext dbContext)
+        private readonly IUnitOfWork unitOfWork;
+        public IdentityService(IdentityClient identityClient, IUnitOfWork unitOfWork)
         {
             this.identityClient = identityClient;
-            this.dbContext = dbContext;
+            this.unitOfWork = unitOfWork;
         }
         public async Task<User?> GetUserByEmail(string email)
         {
-            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var user = await unitOfWork.UserRepository.GetUserByEmail(email);
 
             if(user != null)
             {
@@ -41,15 +42,15 @@ namespace FileService.BLL.Services
 
             var tempUser = new User { Email = email, IdentityGuid = Guid.Parse(response.Guid), UserName = response.UserName };
 
-            dbContext.Users.Add(tempUser);
-            await dbContext.SaveChangesAsync();
+            unitOfWork.UserRepository.AddUser(tempUser);
+            await unitOfWork.SaveChangesAsync();
 
             return tempUser;
         }
 
         public async Task<User?> GetUserById(Guid id)
         {
-            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.IdentityGuid == id);
+            var user = await unitOfWork.UserRepository.GetUserById(id);
 
             if (user != null)
             {
@@ -66,8 +67,9 @@ namespace FileService.BLL.Services
             }
 
             var tempUser = new User { Email = response.Email, IdentityGuid = Guid.Parse(response.Guid), UserName = response.UserName };
-            dbContext.Users.Add(tempUser);
-            await dbContext.SaveChangesAsync();
+
+            unitOfWork.UserRepository.AddUser(tempUser);
+            await unitOfWork.SaveChangesAsync();
 
             return tempUser;
         }

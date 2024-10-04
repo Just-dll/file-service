@@ -19,10 +19,10 @@ namespace FileService.BLL.Services
 {
     public class FileService : IFileService
     {
-        private readonly FileServiceDbContext _dbContext;
         private readonly IStorageProvider _storageProvider;
         private readonly IMapper _mapper;
-        private readonly IFolderService _folderService;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IDateTimeService _dateTimeService;
         //private static readonly ReadOnlyDictionary<string, string> MimeTypes = new(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         //{
         //    { ".jpg", "image/jpeg" },
@@ -32,43 +32,43 @@ namespace FileService.BLL.Services
         //    { ".txt", "text/plain" }
         //});
 
-        public FileService(FileServiceDbContext context, IStorageProvider storageProvider, IMapper mapper, IFolderService folderService)
+        public FileService(IUnitOfWork unitOfWork, IStorageProvider storageProvider, IMapper mapper, IDateTimeService dateTimeService)
         {
-            _dbContext = context;
+            _unitOfWork = unitOfWork;
             _storageProvider = storageProvider;
             _mapper = mapper;
-            _folderService = folderService;
+            _dateTimeService = dateTimeService;
         }
 
         public async Task<FileModel?> GetFileAsync(uint folderId, uint fileId)
         {
-            return _mapper.Map<FileModel?>(await _dbContext.Files.AsNoTracking().FirstOrDefaultAsync(f => f.Id == fileId && f.FolderId == folderId));
+            return _mapper.Map<FileModel?>(await _unitOfWork.FileRepository.GetFileByIdAsync(folderId, fileId));
         }
 
         public async Task DeleteFileAsync(uint folderId, uint fileId)
         {
-            var file = await _dbContext.Files.FirstOrDefaultAsync(f => f.Id == fileId && f.FolderId == folderId);
+            var file = await _unitOfWork.FileRepository.GetFileByIdAsync(folderId, fileId);
             if (file != null)
             {
                 // Delete the file from disk
                 await _storageProvider.DeleteItemAsync(file.InternalFilePath, file.Name);
 
                 // Remove the file metadata from the database
-                _dbContext.Files.Remove(file);
-                await _dbContext.SaveChangesAsync();
+                _unitOfWork.FileRepository.DeleteFile(file);
+                await _unitOfWork.SaveChangesAsync();
             }
         }
 
         public async Task<FileDownloadModel?> DownloadFile(uint folderId, uint fileId)
         {
-            var file = await _dbContext.Files.FirstOrDefaultAsync(f => f.Id == fileId && f.FolderId == folderId);
+            var file = await _unitOfWork.FileRepository.GetFileByIdAsync(folderId, fileId);
 
             if (file == null)
             {
                 return null;
             }
 
-            var folderPath = await _folderService.GetFullFolderPathAsync(folderId);
+            var folderPath = await _unitOfWork.FolderRepository.GetOuterFoldersAsync(folderId);
 
             var fullPath = string.Join('/', folderPath.Select(f => f.Name));
 
@@ -79,15 +79,15 @@ namespace FileService.BLL.Services
 
         public async Task<FileShortModel> UploadFileAsync(IFormFile file, uint folderId)
         {
-            var folder = await _dbContext.Folders.Include(f => f.Files).FirstOrDefaultAsync(f => f.Id == folderId) 
-                ?? throw new DirectoryNotFoundException();
-            
+            var folder = await _unitOfWork.FolderRepository.GetFolderByIdAsync(folderId) ?? throw new DirectoryNotFoundException();
+
             if (folder.Files.Any(f => f.Name == file.Name))
             {
                 throw new AlreadyExistsException(file.Name);
             }
 
-            var folderPath = await _folderService.GetFullFolderPathAsync(folderId);
+
+            var folderPath = await _unitOfWork.FolderRepository.GetOuterFoldersAsync(folderId);
 
             var fullRelativePath = string.Join('/', folderPath.Select(f => f.Name));
 
@@ -99,24 +99,25 @@ namespace FileService.BLL.Services
                 InternalFilePath = intPath,
                 FolderId = folderId,
                 Size = file.Length,
-                CreationDate = DateTime.UtcNow
+                CreationDate = _dateTimeService.DateTimeNow,
             };
 
-            _dbContext.Files.Add(dbFile);
-            await _dbContext.SaveChangesAsync();
+            _unitOfWork.FileRepository.AddFile(dbFile);
+            await _unitOfWork.SaveChangesAsync();
 
             return _mapper.Map<FileShortModel>(dbFile);
         }
 
         public async Task<FilePreviewModel?> GetFilePreviewAsync(uint folderId, uint fileId)
         {
-            var file = await _dbContext.Files.FirstOrDefaultAsync(f => f.Id == fileId && f.FolderId == folderId);
+            var file = await _unitOfWork.FileRepository.GetFileByIdAsync(folderId, fileId);
             if (file == null)
             {
                 return null;
             }
 
-            var folderPath = await _folderService.GetFullFolderPathAsync(folderId);
+            var folderPath = await _unitOfWork.FolderRepository.GetOuterFoldersAsync(folderId);
+
             var fullPath = string.Join('/', folderPath.Select(f => f.Name));
 
             // Get MIME type
