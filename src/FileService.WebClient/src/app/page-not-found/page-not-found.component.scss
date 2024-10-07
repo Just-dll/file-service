@@ -1,0 +1,59 @@
+// Variables for theme colors
+$primary-color: #4a90e2;
+$secondary-color: #f5f5f5;
+$text-color: #333;
+$font-family: 'Roboto', sans-serif;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: $font-family;
+  color: $text-color;
+}
+
+.container {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.error-content {
+  max-width: 600px;
+}
+
+.error-content h1 {
+  font-size: 8rem;
+  color: $primary-color;
+  margin-bottom: 1rem;
+}
+
+.error-content h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.error-content p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  color: $text-color;
+}
+
+.btn-primary {
+  background-color: $primary-color;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: darken($primary-color, 10%);
+}

@@ -16,12 +16,14 @@ import { environment } from '../environment/environment.development';
 import { OAuthModule, OAuthService } from 'angular-oauth2-oidc';
 import { CsrfHeaderInterceptor } from './csrf-header.interceptor';
 import { AuthInterceptor } from './auth.interceptor';
+import { PageNotFoundComponent } from './page-not-found/page-not-found.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     HomeComponent,
     DriveLayoutComponent,
+    PageNotFoundComponent
   ],
   imports: [
     BrowserModule,

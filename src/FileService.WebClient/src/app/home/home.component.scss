@@ -1,3 +1,125 @@
-.home {
-    margin: 8px;
+// Variables for theme colors
+$primary-color: #4a90e2;
+$secondary-color: #f5f5f5;
+$text-color: #333;
+$font-family: 'Roboto', sans-serif;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: $font-family;
+  color: $text-color;
+}
+
+.container {
+  text-align: center;
+  margin: 0 auto;
+}
+
+header.hero {
+  background: linear-gradient(to bottom right, $primary-color, darken($primary-color, 10%));
+  color: white;
+  padding: 5rem 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+
+// Hero content styles
+.hero-content h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.hero-content p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.btn-primary {
+  background-color: white;
+  color: $primary-color;
+  padding: 0.75rem 1.5rem;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: lighten($primary-color, 15%);
+}
+
+section.services {
+  background-color: $secondary-color;
+  padding: 4rem 2rem;
+}
+
+.services h2 {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.service-cards {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+.card {
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  width: 300px;
+  margin: 1rem;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.card p {
+  font-size: 1rem;
+  color: $text-color;
+}
+
+// Login Call to Action (CTA) section
+.cta-login {
+  padding: 3rem 2rem;
+  background-color: lighten($primary-color, 40%);
+  color: $text-color;
+}
+
+.cta-login h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.cta-login p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+footer {
+  background-color: $primary-color;
+  color: white;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+footer p {
+  margin: 0;
 }

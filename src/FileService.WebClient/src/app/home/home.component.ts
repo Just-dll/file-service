@@ -7,5 +7,5 @@ import { SwPush } from '@angular/service-worker';
   styleUrl: './home.component.scss'
 })
 export class HomeComponent {
-
+  title = 'File storage provider'
 }
