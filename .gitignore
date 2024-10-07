@@ -365,3 +365,4 @@ FodyWeavers.xsd
 
 FileServiceStorage/
 /tests/CoverageReport
+/src/IdentityService/keys

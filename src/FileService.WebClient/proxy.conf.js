@@ -24,6 +24,7 @@ const PROXY_CONFIG = [
       "/bff",
       "/signin-oidc",
       "signout-callback-oidc",
+      "/signout-callback-oidc"
     ],
     //target: process.env["BFF__Url"],
     target: "https://localhost:7082",
