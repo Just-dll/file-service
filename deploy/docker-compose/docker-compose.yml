@@ -1,0 +1,163 @@
+volumes:
+  redis-data:
+  mssql-data:
+  file-data:
+  grafana-storage:
+  otel-storage:
+  identity-storage:
+
+services:
+  redis:
+    image: "redis:alpine"
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - aspire-network
+    volumes:
+      - redis-data:/data
+
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: otel-collector
+    ports:
+      - "4318:4318"
+      - "9464:9464"
+    volumes:
+      - ./otel-config.yaml:/etc/otel-collector-config.yaml
+    networks:
+      - aspire-network
+    command: ["--config=/etc/otel-collector-config.yaml"]
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - aspire-network
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - aspire-network
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      - prometheus
+    links:
+      - prometheus
+
+  mssql:
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
+    environment:
+        - SA_PASSWORD=KUsMT!2yKG3+ZKP.k1EVgb
+        - ACCEPT_EULA=Y
+        - MSSQL_PID=Developer
+    ports:
+      - "34211:1433"
+    networks:
+      - aspire-network
+    volumes:
+      - "./mssql-data/:/var/opt/mssql/data/"
+
+  file-service-web-api:
+    image: file-service-web-api
+    container_name: file-service-web-api
+    depends_on:
+      - redis
+      - mssql
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Redis__ConnectionString=redis:6379
+      - IdentityService__Url=http://file-service-identity-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector
+      - FileService__DbConnectionString=Server=mssql;Database=filedb;User Id=sa;Password=KUsMT!2yKG3+ZKP.k1EVgb;
+      - StorageConfiguration__Directory=/app/data/FileServiceStorage
+    networks:
+      - aspire-network
+    volumes:
+      - file-data:/app/data
+    ports:
+      - "5000:8080"
+    command: ["dotnet", "FileService.WebApi.dll"]
+
+  file-service-identity-service:
+    image: file-service-identity-service
+    container_name: file-service-identity-service
+    user: "root"
+    depends_on:
+      - mssql
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector
+      - IdentityService__DbConnectionString=Server=mssql;Database=identitydb;User Id=sa;Password=KUsMT!2yKG3+ZKP.k1EVgb;
+      - Authentication__Google__ClientId=${GOOGLE_CLIENT_ID}
+      - Authentication__Google__ClientSecret=${GOOGLE_CLIENT_SECRET}
+      - Authentication__Microsoft__ClientId=${MICROSOFT_CLIENT_ID}
+      - Authentication__Microsoft__ClientSecret=${MICROSOFT_CLIENT_SECRET}
+      - Mail__Host=${MAIL_HOST}
+      - Mail__Port=${MAIL_PORT}
+      - Mail__UseSsl=${MAIL_USE_SSL}
+      - Mail__Username=${MAIL_USERNAME}
+      - Mail__Password=${MAIL_PASSWORD}
+      - Mail__FromEmail=${MAIL_FROM_EMAIL}
+    networks:
+      - aspire-network
+    volumes:
+      - identity-storage:/app/
+    ports:
+      - "5001:8080"
+    command: ["dotnet", "IdentityService.dll"]
+
+
+  file-service-bff:
+    image: file-service-bff
+    container_name: file-service-bff
+    depends_on:
+      - file-service-identity-service
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector
+      - BFF__ClientId=fileService
+      - BFF__ClientSecret=3B7E82F9-C45B-11EC-952C-0242AC120002
+      - BFF__Authority=http://file-service-identity-service:8080
+      - BFF__Url=http://file-service-bff
+      - BFF__Scopes__0=openid
+      - BFF__Scopes__1=profile
+      - BFF__Apis__0__LocalPath=/api
+      - BFF__Apis__0__RemoteUrl=http://file-service-web-api
+      - BFF__Apis__0__RequiredToken=User
+    networks:
+      - aspire-network
+    ports:
+      - "5002:8080"
+    command: ["dotnet", "FileService.BFF.dll"]
+
+
+  file-service-web-client:
+    image: file-service-web-client
+    container_name: file-service-web-client
+    depends_on:
+      - file-service-bff
+    networks:
+      - aspire-network
+    ports:
+      - "5031:80"
+    environment:
+      - BFF__Url=http://file-service-bff:5031
+      - Identity__Url=http://file-service-identity-service
+      - FileService__Url=http://file-service-web-api
+    volumes:
+      - "./FileService.WebClient:/usr/src/app"
+    command: ["nginx", "-g", "daemon off;"]
+
+networks:
+  aspire-network:
+    driver: bridge

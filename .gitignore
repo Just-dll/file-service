@@ -369,3 +369,4 @@ FileServiceStorage/
 deploy/.env
 deploy/docker-compose/mssql-data
 deploy/docker-compose/FileService.WebClient
+/deploy/docker-compose/.env
