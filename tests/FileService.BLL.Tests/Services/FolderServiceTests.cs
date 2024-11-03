@@ -7,7 +7,6 @@ using FileService.BLL.Models.Short;
 using FileService.DAL.Data;
 using FileService.DAL.Entities;
 using FileService.DAL.Interfaces;
-using FileService.Tests;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using System;

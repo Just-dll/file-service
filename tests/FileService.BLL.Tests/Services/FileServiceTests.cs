@@ -8,7 +8,6 @@ using FileService.DAL.Data;
 using FileService.DAL.Entities;
 using FileService.DAL.Exceptions;
 using FileService.DAL.Interfaces;
-using FileService.Tests;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Moq;

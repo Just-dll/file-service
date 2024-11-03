@@ -14,7 +14,7 @@ var identityService = builder.AddProject<Projects.IdentityService>("mesaproject-
     .WithReference(cache)
     .WithReference(identitydb);
 
-var identityEndpoint = identityService.GetEndpoint("https") ?? throw new ArgumentNullException("Failed to retreive endpoint");
+var identityEndpoint = identityService.GetEndpoint("https");
 
 var fileService = builder.AddProject<Projects.FileService_WebApi>("mesaproject-fileservice")
     .WithEnvironment("IdentityService__Url", identityEndpoint)
@@ -32,7 +32,7 @@ var webclient = builder.AddNpmApp("WebApp", "../FileService.WebClient")
     .WithEnvironment("BFF__Url", bff.GetEndpoint("https"))
     .WithEnvironment("Identity__Url", identityEndpoint)
     .WithEnvironment("FileService__Url", fileEndpoint)
-    .WithHttpsEndpoint(port: 5031, targetPort: 5031, env: "PORT", isProxied: false);
+    .WithHttpsEndpoint(5031, 5031, env: "PORT", isProxied: false);
 
 identityService
     .WithEnvironment("Bff__Url", bff.GetEndpoint("https"))

@@ -35,11 +35,6 @@ namespace FileService.DAL.Repositories
             }
         }
 
-        public Task<bool> FileExistsAsync(string fileName, string filePath)
-        {
-            throw new NotImplementedException();
-        }
-
         public async Task<Entities.File?> GetFileByIdAsync(uint folderId, uint fileId)
         {
             return await dbContext.Files.Include(f => f.Folder)

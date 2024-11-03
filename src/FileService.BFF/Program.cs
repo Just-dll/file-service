@@ -33,6 +33,7 @@ builder.Services.AddAuthentication(options =>
         options.ResponseMode = "query";
 
         options.GetClaimsFromUserInfoEndpoint = true;
+        options.RequireHttpsMetadata = false;
         options.MapInboundClaims = false;
         options.SaveTokens = true;
 

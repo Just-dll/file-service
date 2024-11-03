@@ -366,3 +366,6 @@ FodyWeavers.xsd
 FileServiceStorage/
 /tests/CoverageReport
 /src/IdentityService/keys
+deploy/.env
+deploy/docker-compose/mssql-data
+deploy/docker-compose/FileService.WebClient

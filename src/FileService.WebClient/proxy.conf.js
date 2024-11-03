@@ -1,21 +1,3 @@
-/*module.exports = {
-  "/api": {
-    target:
-      process.env["FileService__Url"],
-    secure: process.env["NODE_ENV"] !== "development",
-    
-  },
-  "/identity": {
-    target:
-      process.env["Identity__Url"],
-      secure: process.env["NODE_ENV"] !== "development",
-      pathRewrite: {
-        "^/identity": "",
-      },
-      changeOrigin : true,
-  }
-};
-*/
 const PROXY_CONFIG = [
   {
     context: [
@@ -26,8 +8,7 @@ const PROXY_CONFIG = [
       "signout-callback-oidc",
       "/signout-callback-oidc"
     ],
-    //target: process.env["BFF__Url"],
-    target: "https://localhost:7082",
+    target: process.env["BFF__Url"],
     secure: false
   }
 ]
